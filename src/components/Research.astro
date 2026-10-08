@@ -1,0 +1,28 @@
+---
+// Research: publications and talks by year, newest first. The owner's name is in bold in author lists.
+import { inline, markMe, research } from "../lib/content";
+const years = [...new Set(research.items.map((r) => r.year))].sort((a, b) => b - a);
+---
+<div class="explorer research">
+  <h1 class="vh">Research</h1>
+  {research.intro && <p class="intro"><Fragment set:html={inline(research.intro)} /></p>}
+  {years.map((y) => (
+    <>
+      <h2>{y}</h2>
+      <ul class="pubs">
+        {research.items.filter((r) => r.year === y).map((r) => (
+          <li>
+            <span class="k">{r.kind}</span>
+            <span class="b">
+              {r.url ? <a href={r.url} target="_blank" rel="noopener">{r.title}</a> : <span class="t">{r.title}</span>}
+              {r.authors && <span class="au"><Fragment set:html={markMe(r.authors)} /></span>}
+              {r.venue && <span class="n">{r.venue}</span>}
+              {r.note && <span class="nt"><Fragment set:html={inline(r.note)} /></span>}
+              {r.links.length > 0 && <span class="lnk">{r.links.map((l) => <a href={l.url} target="_blank" rel="noopener">{l.label}</a>)}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
+  ))}
+</div>

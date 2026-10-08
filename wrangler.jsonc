@@ -1,0 +1,28 @@
+{
+  // One Worker per person: the pages as static assets, plus a small script that
+  // keeps the owner's Goodreads shelves under /reading. The Deploy to Cloudflare
+  // button reads this file and creates the key-value store and the sync object
+  // in your account.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "my-desktop",
+  "main": "src/worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    // Pages, feeds and /reading go through the script: it stamps in the site's address and decides
+    // whether to serve the sample /reading/view.json. Images, scripts and the editor skip it.
+    "run_worker_first": ["/*", "!/_astro/*", "!/media/*", "!/og/*", "!/admin/*", "!/favicon.svg", "!/apple-touch-icon.png"]
+  },
+  "build": { "command": "npm run build" },
+  // Reading sync. The object's own alarm is the schedule; the cron is a nudge.
+  "triggers": { "crons": ["0 */12 * * *"] },
+  "durable_objects": { "bindings": [{ "name": "SYNC", "class_name": "ShelfSync" }] },
+  // SQLite-backed objects are the ones the free plan includes.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShelfSync"] }],
+  // No id: wrangler creates the namespace on the first deploy.
+  "kv_namespaces": [{ "binding": "BOOKS" }]
+}
