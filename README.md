@@ -30,7 +30,7 @@ Everything on the site is a file under `content/`, the same files as the Sidebar
 | --- | --- |
 | `content/site.json` | Name, links, photo, accent colour, Goodreads profile, bookshelf style, and the Desktop settings below |
 | `content/about.json` | `about.txt` in Notepad, and System Properties |
-| `content/now.json` | `now.txt` in Notepad (when switched on); its "Not doing" items fill the Recycle Bin |
+| `content/now.json` | `now.txt` in Notepad (when switched on) |
 | `content/writing/*.md` | Writing: one Markdown file per piece |
 | `content/writing.json` | The Writing page's description for search results |
 | `content/research.json` | Research, by year |
@@ -72,6 +72,10 @@ Titles, descriptions, canonical links, Open Graph and Twitter tags, structured d
 
 Unchanged from the Sidebar template. `src/worker/` reads the public Goodreads shelves named in `content/site.json` on a schedule, keeps them in KV, and serves them at `/reading/view.json`, with covers under `/reading/covers/`. Until a profile is connected, the sample shelf in `public/reading/view.json` is served and the editor says so. The Reading window draws the shelf with the Sidebar template's four styles (`src/scripts/shelf/`); Stacks is the default here.
 
+## Posts from Medium and Substack
+
+Set a Medium handle or address and a Substack address under Site settings, and the Worker reads their public RSS feeds (`medium.com/feed/@handle`, `<name>.substack.com/feed`) every 12 hours, keeps the newest posts in KV, and serves them at `/writing/elsewhere.json` (`src/worker/core/posts.js` parses, `posts-store.js` runs a sync, `posts-object.js` is the Durable Object with the alarm; all shared with the Sidebar template). The newest posts join the writing list in the browser, each with a small chip saying where it lives and a link to the post there. A feed that fails keeps its last good posts. Medium shares its 10 newest stories and Substack its 20 newest posts, so older pieces still need an entry under Writing with "Published elsewhere" set; those get the same chip. Posts to leave out are listed under Writing page → Posts to leave out. With nothing set, the sample posts in `public/writing/elsewhere.json` are served, regenerated with `npm run sample:posts`. `GET /writing/elsewhere/status` reports the last run; `POST /writing/elsewhere/sync` asks for one now.
+
 ## Layout
 
 | Path | What |
@@ -79,7 +83,7 @@ Unchanged from the Sidebar template. `src/worker/` reads the public Goodreads sh
 | `src/pages/` | One file per address, each the desktop with one window open; plus the generated feeds, sitemap, icons and preview cards |
 | `src/layouts/Desktop.astro` | The head, the desktop, the taskbar and menus, and every window's content |
 | `src/components/` | The Writing journal, Research and Reading windows |
-| `src/lib/desktop.ts` | What the desktop draws from the content: Notepad text, icons, System Properties, the Recycle Bin |
+| `src/lib/desktop.ts` | What the desktop draws from the content: Notepad text, icons, System Properties |
 | `src/lib/content.ts`, `schemas.ts`, `cards.ts` | Shared with the Sidebar template: loading and checking content, preview cards |
 | `src/scripts/desktop/main.js` | The desktop: windows (WinBox.js), wallpapers, journal and margin notes, shelf, notifications, time and weather, Run, easter eggs |
 | `src/scripts/shelf/`, `src/styles/shelf/` | The bookshelf styles, shared with the Sidebar template |
@@ -90,4 +94,4 @@ Unchanged from the Sidebar template. `src/worker/` reads the public Goodreads sh
 
 ## Easter eggs
 
-Start → Run takes commands (`help` lists them). Notepad can't save. The Recycle Bin holds what you set down on purpose. System Properties counts your words. Leave the desktop alone for two minutes. Shut it down. Try the Konami code.
+Start → Run takes commands (`help` lists them). Notepad can't save. System Properties counts your words. Leave the desktop alone for two minutes. Shut it down. Try the Konami code.

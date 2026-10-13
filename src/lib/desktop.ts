@@ -1,7 +1,7 @@
 // What the desktop draws, worked out once per build from the same content files the other templates
-// use: the plain text Notepad shows for About and Now, the icons, the facts in System Properties, the
-// Recycle Bin, and the small piece of data the page's script reads (src/scripts/desktop/main.js).
-import { about, accent, day, freshness, now, research, shown, site, writing, years } from "./content";
+// use: the plain text Notepad shows for About and Now, the icons, the facts in System Properties, and
+// the small piece of data the page's script reads (src/scripts/desktop/main.js).
+import { about, accent, day, freshness, now, research, shown, site, writing, writingPage, years } from "./content";
 
 export const first = site.name.trim().split(/\s+/)[0] || site.name;
 
@@ -43,7 +43,7 @@ export type Icon = { key: string; label: string; ico: string; href?: string; doc
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
 // Desktop icons in order. A window whose page is switched off or empty has no icon. Pinned pieces of
-// writing get an icon of their own. My Computer and the Recycle Bin have no page, so no address.
+// writing get an icon of their own. My Computer has no page, so no address.
 export async function icons(): Promise<Icon[]> {
   const on = await shown();
   const posts = await writing();
@@ -56,7 +56,7 @@ export async function icons(): Promise<Icon[]> {
     const p = posts.find((x) => x.id === slug && !x.data.link);
     if (p) list.push({ key: "writing", label: clip(p.data.title, 24), full: p.data.title, ico: "txt", href: `/writing/${p.id}`, doc: p.id });
   }
-  list.push({ key: "computer", label: "My Computer", ico: "pc" }, { key: "bin", label: "Recycle Bin", ico: "bin" });
+  list.push({ key: "computer", label: "My Computer", ico: "pc" });
   return list;
 }
 
@@ -69,11 +69,6 @@ export async function stats() {
   return { pieces: posts.length, words, research: research.items.length, installed: day(firstPiece), updated: day(fresh.date) };
 }
 
-// The Recycle Bin holds what the owner set down on purpose: Now's "Not doing" items, and two jokes.
-export function binItems(): string[] {
-  const gone = now.groups.filter((g) => /^not\b/i.test(g.heading)).flatMap((g) => g.items.map(plain));
-  return [...gone, "new-side-project.md", "about-v2-much-longer.txt"];
-}
 
 // What the page's script needs that isn't in the markup.
 export async function deskData() {
@@ -86,5 +81,6 @@ export async function deskData() {
     accent: accent.light,
     titles: posts.map((p) => p.data.title),
     writing: posts.map((p) => ({ slug: p.id, title: p.data.title, date: p.data.date.toISOString().slice(0, 10), link: p.data.link || "" })),
+    hide: writingPage.hide,   // Medium or Substack posts to leave out of the journal
   };
 }

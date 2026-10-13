@@ -6,8 +6,11 @@
 /* ---------------------------------------------------------------- tokens
    A desk: generated wallpapers drawn from the owner's world (contour lines, paddy terraces,
    monsoon, crushed basalt), picked in Display properties. Everything that
-   sits on it is paper and ink with a hard offset shadow. One accent, taken from the wallpaper
-   aerospace orange, and it only ever marks what is selected. */
+   sits on it is paper and ink with a hard offset shadow. One accent, taken from the wallpaper,
+   marks what is selected. Each kind of window also has a colour of its own (--win, --win-ink): a
+   Notepad's title bar is a legal-pad yellow, a folder's is manila, the journal's is brick, the shelf's
+   is bottle green and the system's is a blue, on the title bar in front, the taskbar and the icon's
+   label. Classic mode keeps them out. */
 :root{
   --ink:#141414; --paper:#F6F3EC; --chrome:#DAD5C8; --rule:#B9B3A4; --mute:#6B675E;
   --accent:#FF4F00; --accent-ink:#141414;
@@ -49,6 +52,12 @@
   --accent:#000080; --accent-ink:#fff; --shadow:none;
   --desk-a:#008080; --desk-b:#008080;
 }
+/* App colours: on a window, its taskbar button and its desktop icon alike. */
+:root:not([data-classic]) .app-notepad,:root:not([data-classic]) .icon[data-ico="txt"]{--win:#E9C33F;--win-ink:#141414}
+:root:not([data-classic]) .app-journal,:root:not([data-classic]) .icon[data-ico="journal"]{--win:#C4472B;--win-ink:#F6F3EC}
+:root:not([data-classic]) .app-explorer,:root:not([data-classic]) .icon[data-ico="folder"]{--win:#D9933A;--win-ink:#141414}
+:root:not([data-classic]) .app-reading,:root:not([data-classic]) .icon[data-ico="books"]{--win:#2F7A52;--win-ink:#F6F3EC}
+:root:not([data-classic]) .app-sys,:root:not([data-classic]) .icon[data-ico="pc"]{--win:#3A62B8;--win-ink:#F6F3EC}
 
 /* ---------------------------------------------------------------- base */
 *{box-sizing:border-box}
@@ -66,7 +75,7 @@ a{color:inherit}
 .icon{position:absolute;width:96px;color:inherit;text-decoration:none;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid transparent;user-select:none;-webkit-user-select:none;touch-action:none}
 .pic{background-size:contain;background-position:center;background-repeat:no-repeat}
 .icon .pic{width:40px;height:40px;filter:drop-shadow(2px 2px 0 #141414)}
-.icon .lbl{font-size:var(--fs-sm);line-height:var(--lh-snug);text-align:center;color:#F6F3EC;background:#141414;padding:1px 5px;white-space:nowrap;max-width:none}
+.icon .lbl{font-size:var(--fs-sm);line-height:var(--lh-snug);text-align:center;color:var(--win-ink,#F6F3EC);background:var(--win,#141414);padding:1px 5px;white-space:nowrap;max-width:none}
 .icon.sel .lbl{background:var(--accent);color:var(--accent-ink);text-shadow:none}
 .icon.sel{border-color:var(--accent)}
 .icon.drag{opacity:.7}
@@ -82,12 +91,11 @@ a{color:inherit}
 .pic.folder{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M3 8h10l3 3h13v16H3z' fill='%23F6F3EC' stroke='%23141414' stroke-width='2'/%3E%3Cpath d='M3 14h26' stroke='%23141414' stroke-width='2'/%3E%3C/svg%3E")}
 .pic.books{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M3 6h6v24H3zM11 3h6v27h-6z' fill='%23F6F3EC' stroke='%23141414' stroke-width='2'/%3E%3Cpath d='M19 8l6-2 5 22-6 2z' fill='%23F6F3EC' stroke='%23141414' stroke-width='2'/%3E%3Cpath d='M3 12h6M11 9h6' stroke='%23141414' stroke-width='2'/%3E%3C/svg%3E")}
 .pic.pc{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='4' width='26' height='18' fill='%23F6F3EC' stroke='%23141414' stroke-width='2'/%3E%3Crect x='7' y='8' width='18' height='10' fill='%23141414'/%3E%3Cpath d='M12 27h8M16 22v5' stroke='%23141414' stroke-width='2'/%3E%3Cpath d='M9 10h4' stroke='%23F6F3EC' stroke-width='2'/%3E%3C/svg%3E")}
-.pic.bin{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M7 9h18l-2 21H9z' fill='%23F6F3EC' stroke='%23141414' stroke-width='2'/%3E%3Cpath d='M5 9h22M12 9V5h8v4M13 14v12M19 14v12' stroke='%23141414' stroke-width='2'/%3E%3C/svg%3E")}
 
 /* ---------------------------------------------------------------- windows (WinBox overrides) */
-.winbox{background:var(--ink);box-shadow:var(--shadow);border:1px solid var(--ink);border-radius:0;transition:none;contain:layout}
+.winbox{background:var(--win,var(--ink));box-shadow:var(--shadow);border:1px solid var(--ink);border-radius:0;transition:none;contain:layout}
 .winbox:not(.focus){background:var(--chrome)}
-.winbox.focus .wb-header{color:var(--paper)}
+.winbox.focus .wb-header{color:var(--win-ink,var(--paper))}
 .winbox:not(.focus) .wb-header{color:var(--ink)}
 .wb-header{height:var(--head-h);line-height:var(--head-h)}
 .wb-drag{padding-left:10px}
@@ -263,6 +271,9 @@ a{color:inherit}
 .jr-item{color:inherit;text-decoration:none;display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;padding:7px 8px;cursor:pointer}
 .jr-item .t{font:var(--fs-md)/var(--lh-snug) var(--font-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .jr-item .m{font-size:var(--fs-xs);color:var(--mute)}
+/* Where a piece lives when it is on another site: Medium, Substack, or the host. */
+.jr .where{display:inline-block;margin-right:2px;padding:0 6px;border:1px solid var(--rule);border-radius:999px;font:var(--fs-xs)/1.5 var(--font-ui);color:var(--mute);vertical-align:1px;white-space:nowrap}
+.jr-item[aria-current="true"] .where{border-color:currentColor;color:inherit}
 @media (hover:hover){.jr-item:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}}
 .jr-item[aria-current="true"]{background:var(--accent);color:var(--accent-ink)}
 .jr-item[aria-current="true"] .m{color:inherit;opacity:.8}
@@ -388,7 +399,7 @@ mark.mn:hover,mark.mn.on{background:color-mix(in srgb,var(--accent) 36%,transpar
 .task{display:flex;align-items:center;gap:8px;padding:0 10px;max-width:200px;min-width:0;border:1px solid var(--ink);font-size:var(--fs-sm);background:var(--paper)}
 .task .pic{width:14px;height:14px;flex:none;filter:none}
 .task span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.task.active{background:var(--ink);color:var(--paper)}
+.task.active{background:var(--win,var(--ink));color:var(--win-ink,var(--paper))}
 .task.minned{border-style:dashed;color:var(--mute)}
 #clock{padding:0 12px;border-left:1px solid var(--rule);font-size:var(--fs-sm);font-variant-numeric:tabular-nums;white-space:nowrap}
 #clock:hover{background:var(--chrome)}

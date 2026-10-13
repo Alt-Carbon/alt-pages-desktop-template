@@ -5,6 +5,7 @@
 // The page is complete without this script: each address carries its window's content as HTML.
 import WinBox from "winbox/src/js/winbox.js";
 import { load as loadShelf, loadAll } from "../shelf/shared";
+import { loadPosts, visible, WHERE } from "../posts";
 
 const DATA = JSON.parse(document.getElementById("desk-data").textContent);
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -273,18 +274,22 @@ desktop.addEventListener("pointerdown", (e) => { if (e.target === desktop) selec
 function openIcon(el) { if (el.dataset.doc) openWriting(el.dataset.doc); else open(el.dataset.open); }
 
 /* ---------------------------------------------------------------- windows */
-const wins = {}; let cascade = 0;
-const SIZES = { notepad: [560, 520], explorer: [660, 420], journal: [940, 620], reading: [1080, 720], sys: [460, 400], dlg: [380, 200] };
-const ICON_OF = { about: "txt", now: "txt", writing: "journal", research: "folder", reading: "books", computer: "pc", bin: "bin" };
+const wins = {};
+// Each kind of window opens as a share of the desk (width, height), up to a cap in pixels, and sits in
+// the middle of the desk. One window shows at a time: opening or restoring one puts the others in the
+// taskbar, so each app gets the whole desk and the visitor never hunts under a pile.
+const SIZES = { notepad: [.62, .9, 880, 960], explorer: [.64, .76, 920, 760], journal: [.84, .92, 1260, 1000], reading: [.9, .94, 1440, 1100], sys: [.4, .56, 500, 520], dlg: [.3, .25, 380, 200] };
+const ICON_OF = { about: "txt", now: "txt", writing: "journal", research: "folder", reading: "books", computer: "pc" };
+function solo(keep) { for (const w of Object.values(wins)) if (w !== keep && w.app !== "dlg" && !w.min) w.minimize(); }
 function open(key, opts = {}) {
-  if (wins[key]) { const w = wins[key]; if (w.min) w.restore(); w.focus(); return w; }
+  if (wins[key]) { const w = wins[key]; solo(w); if (w.min) w.restore(); w.focus(); return w; }
   const el = $("#body-" + key); if (!el) return;
-  const app = el.dataset.app, [W, H] = SIZES[app] || SIZES.explorer;
-  const maxW = innerWidth - 24, maxH = innerHeight - TASK_H - 24;
-  const w = Math.min(W, maxW), h = Math.min(H, maxH);
-  const n = cascade++ % 7;
-  const x = Math.min(opts.x ?? (small() ? 0 : 120 + n * 28), Math.max(0, innerWidth - w - 12));
-  const y = Math.min(opts.y ?? (small() ? 0 : 36 + n * 24), Math.max(0, innerHeight - TASK_H - h - 12));
+  const app = el.dataset.app, [fw, fh, capW, capH] = SIZES[app] || SIZES.explorer;
+  const deskW = innerWidth, deskH = innerHeight - TASK_H;
+  const w = Math.min(Math.round(deskW * fw), capW, deskW - 24), h = Math.min(Math.round(deskH * fh), capH, deskH - 24);
+  const x = Math.max(0, Math.round(opts.x ?? (small() ? 0 : (deskW - w) / 2)));
+  const y = Math.max(0, Math.round(opts.y ?? (small() ? 0 : (deskH - h) / 2)));
+  solo(null);
   el.hidden = false;
   if (app === "notepad" && !el.dataset.ready) { el.dataset.ready = "1"; el.prepend(notepadMenu(el, key)); }
   $(`.icon[data-open="${key}"]`)?.classList.remove("new");
@@ -303,8 +308,8 @@ function open(key, opts = {}) {
   return wb;
 }
 // Each window has a page of its own (/about, /now, /writing/<slug>, /research, /reading). The address
-// bar follows the window in front, so a link copied from it opens the same window. My Computer, the
-// Recycle Bin and dialogs have no page and leave the address alone.
+// bar follows the window in front, so a link copied from it opens the same window. My Computer and
+// dialogs have no page and leave the address alone.
 const TITLES = { about: "About", now: "Now", writing: "Writing", research: "Research", reading: "Reading" };
 function route() {
   const top = Object.values(wins).filter((w) => w.focused && !w.min && w.app !== "dlg")[0];
@@ -492,7 +497,7 @@ function initJournal(el) {
     if (reveal) jr.classList.add("open-note");
     pane.scrollTop = 0;
     const w = wins.writing;
-    if (w) { w.sub = n ? "" : id; w.setTitle((n ? (n.title.trim() || "Untitled") : doc.dataset.title) + " — Writing"); taskbar(); route(); }
+    if (w) { w.sub = n || id.startsWith("x:") ? "" : id; w.setTitle((n ? (n.title.trim() || "Untitled") : doc.dataset.title) + " — Writing"); taskbar(); route(); }
     return true;
   }
   function newNote() {
@@ -535,6 +540,23 @@ function initJournal(el) {
   });
   ["cut", "paste"].forEach((ev) => el.addEventListener(ev, (e) => { const doc = e.target.closest?.(".jr-doc"); if (doc) { e.preventDefault(); nudge($(".lock", doc)); } }));
   renderMine();
+  // Posts on Medium and Substack join the list by date (src/scripts/posts.ts), each with a locked doc
+  // like a piece published elsewhere: title, blurb, and a button to read it there.
+  loadPosts().then((v) => {
+    if (!v) return;
+    const list = $(".jr-list", el), ct = $(".jr-side h2 .ct", el);
+    for (const p of visible(v, DATA.hide || [])) {
+      const where = WHERE[p.source] || p.source, id = "x:" + p.id, when = p.date ? fmtDay(p.date) : "";
+      const li = document.createElement("li"); li.dataset.date = p.date || "";
+      li.innerHTML = `<a class="jr-item" href="${escH(p.url)}" data-note="${escH(id)}" aria-current="false"><span class="t">${escH(p.title)} ↗</span><span class="m"><span class="where">${escH(where)}</span> ${when}</span></a>`;
+      const older = [...list.children].find((row) => (row.dataset.date || "") < (p.date || ""));
+      list.insertBefore(li, older ?? null);
+      const doc = document.createElement("article"); doc.className = "jr-doc essay"; doc.dataset.doc = id; doc.dataset.title = p.title; doc.tabIndex = -1; doc.hidden = true;
+      doc.innerHTML = `<div class="jr-bar"><button class="lock" type="button" title="Only ${escH(first)} can change this">Locked</button></div><div class="jr-text"><h2 class="doc-title">${escH(p.title)}</h2><p class="stamp">${when} · <span class="where">${escH(where)}</span></p>${p.blurb ? `<p>${escH(p.blurb)}</p>` : ""}<p><a class="btn primary ext" href="${escH(p.url)}" target="_blank" rel="noopener">Read it on ${escH(where)}</a></p></div>`;
+      pane.insertBefore(doc, ed || null);
+    }
+    if (ct) ct.textContent = String($$(".jr-list .jr-item[data-note]", el).length);
+  });
   // Open on the piece this page is for, else the newest piece on this site.
   const start = document.body.dataset.piece || DATA.writing.find((p) => !p.link)?.slug || DATA.writing[0]?.slug;
   const ready = start ? show(start, false) : Promise.resolve(false);
@@ -594,10 +616,10 @@ function taskbar() {
   for (const w of Object.values(wins)) {
     if (w.app === "dlg") continue;
     const b = document.createElement("button");
-    b.className = "task" + (w.focused && !w.min ? " active" : "") + (w.min ? " minned" : "");
+    b.className = "task app-" + w.app + (w.focused && !w.min ? " active" : "") + (w.min ? " minned" : "");
     b.setAttribute("role", "listitem");
     b.innerHTML = `<span class="pic ${ICON_OF[w.key] || "txt"}"></span><span class="t">${w.title}</span>`;
-    b.onclick = () => { if (w.min) { w.restore(); w.focus(); } else if (w.focused) w.minimize(); else w.focus(); };
+    b.onclick = () => { if (w.min) { solo(w); w.restore(); w.focus(); } else if (w.focused) w.minimize(); else { solo(w); w.focus(); } };
     tasks.append(b);
   }
 }
@@ -633,7 +655,6 @@ document.addEventListener("click", (e) => {
   if (act === "off") shutdown();
   if (act === "arrange") { store.set("icons", {}); layoutIcons(); }
   if (act === "refresh") { desktop.style.visibility = "hidden"; setTimeout(() => { paintWall(); desktop.style.visibility = ""; }, 90); }
-  if (act === "restore") dialog("Recycle Bin", "<p>Restore is not available.</p><p>These were set down on purpose. See now.txt, under “Not doing”.</p>", "!");
 });
 addEventListener("keydown", (e) => { if (e.altKey && e.code === "KeyR") { e.preventDefault(); runDialog(); } });
 
@@ -658,14 +679,14 @@ function dialog(title, html, glyph = "i", buttons = [{ label: "OK", primary: tru
 
 /* Run… : a tiny command line over the site */
 function runDialog() {
-  const names = { about: "about", now: "now", writing: "writing", research: "research", reading: "reading", computer: "computer", bin: "bin", "about.txt": "about", "now.txt": "now", "my computer": "computer", "recycle bin": "bin" };
+  const names = { about: "about", now: "now", writing: "writing", research: "research", reading: "reading", computer: "computer", "about.txt": "about", "now.txt": "now", "my computer": "computer" };
   dialog("Run", `<p>Type the name of a file, folder or command, and ${DATA.first} OS will open it for you.</p>
     <input class="field" id="run-in" autocomplete="off" spellcheck="false" placeholder="help">
     <pre class="runout" id="run-out"></pre>`, "", [{ label: "Cancel" }, { label: "OK", primary: true, act(el, wb) {
       const inp = $("#run-in", el), out = $("#run-out", el), cmd = inp.value.trim().toLowerCase(); inp.value = "";
       const say = (s) => { out.textContent = s; requestAnimationFrame(() => wb.fit()); return false; };
       if (!cmd) return say("Nothing to run. Try help.");
-      if (cmd === "help") return say("Open: about, now, writing, research, reading, computer, bin.\nAsk: whoami, uptime, date, weather.\nChange: wallpaper <name>, theme day or night, classic.\nAlso: cls, exit.");
+      if (cmd === "help") return say("Open: about, now, writing, research, reading, computer.\nAsk: whoami, uptime, date, weather.\nChange: wallpaper <name>, theme day or night, classic.\nAlso: cls, exit.");
       if (names[cmd]) { if (!open(names[cmd])) return say(`${DATA.first} hasn't put anything in ${cmd} yet.`); return; }
       if (cmd.startsWith("essay ") || cmd.startsWith("open ")) { const q = cmd.split(" ").slice(1).join(" "); const hit = DATA.writing.find((p) => p.title.toLowerCase().includes(q)); if (hit) { openWriting(hit.slug); return; } return say(`No piece called “${q}”.`); }
       if (cmd === "whoami") return say(`${DATA.name}. ${DATA.oneLiner}`);
@@ -952,7 +973,7 @@ loadShelf().then((v) => { const n = v?.counts?.read ?? v?.read?.length; $$("[dat
 boot().then(() => {
   const want = document.body.dataset.window;
   if (want === "writing") openWriting(document.body.dataset.piece);
-  else if (want) open(want, want === "about" && !small() ? { x: 132, y: 40 } : {});
+  else if (want) open(want);
   else dialog("Not found", `<p>There is no file at ${escH(location.pathname)}.</p>`, "!", [{ label: "Open about.txt", primary: true, act() { open("about"); } }]);
   setTimeout(showNews, 700);
   initOwner();
