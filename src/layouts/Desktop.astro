@@ -82,6 +82,8 @@ const show = (k: string) => open === k;
 <link rel="alternate" type="application/json" href="/reading/view.json" title="Reading">
 </head>
 <body data-window={open} data-piece={essay?.slug}>
+  <!-- The owner's content/custom.css: first in the body, so it comes after every stylesheet Astro adds to the head (and wins), yet still loads before anything is drawn. -->
+  <link rel="stylesheet" href="/custom.css" />
 <div id="boot" hidden aria-hidden="true"><span>{first} OS 1.0</span><span>Memory check: enough. Everything here is text.</span><span>Reading content … ok</span><span>Mounting windows … ok</span><span>Opening about.txt</span><span class="cur"></span></div>
 <div id="off" hidden><div>It is now safe to turn off your computer.<small>Or click anywhere, and {first} OS starts again.</small></div></div>
 <div id="saver" hidden aria-hidden="true"></div>
