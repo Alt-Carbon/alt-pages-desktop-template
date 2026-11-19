@@ -551,7 +551,7 @@ function initJournal(el) {
     const list = $(".jr-list", el), ct = $(".jr-side h2 .ct", el);
     for (const p of visible(v, DATA.hide || [])) {
       const where = WHERE[p.source] || p.source, id = "x:" + p.id, when = p.date ? fmtDay(p.date) : "";
-      const li = document.createElement("li"); li.dataset.date = p.date || "";
+      const li = document.createElement("li"); li.dataset.date = p.date || ""; li.dataset.field = p.source === "substack" ? "site.substack" : "site.medium";   // the editor: where this row comes from
       li.innerHTML = `<a class="jr-item" href="${escH(p.url)}" data-note="${escH(id)}" aria-current="false"><span class="t">${escH(p.title)} ↗</span><span class="m"><span class="where">${escH(where)}</span> ${when}</span></a>`;
       const older = [...list.children].find((row) => (row.dataset.date || "") < (p.date || ""));
       list.insertBefore(li, older ?? null);
@@ -589,7 +589,7 @@ async function drawShelf(el, style) {
   $$(".shelfpick button", el).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.shelf === draw)));
   const view = await loadShelf();
   if (!view || (!view.read.length && !view.reading.length)) {
-    host.innerHTML = `<p class="src">${view?.syncing || host.dataset.goodreads ? "Reading the shelf from Goodreads for the first time. This takes under a minute; close and reopen Reading to see it." : "No Goodreads profile connected yet. Add one in the editor under Site settings."}</p>`;
+    host.innerHTML = `<p class="src">${view?.syncing || host.dataset.goodreads ? "Reading the shelf from Goodreads for the first time. This takes under a minute; close and reopen Reading to see it." : "No Goodreads profile connected yet. Add one in the editor, on the Reading page."}</p>`;
     return;
   }
   try { (await SHELF_STYLES[draw]()).render(await loadAll(view), host); }

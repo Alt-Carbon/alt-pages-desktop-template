@@ -5,13 +5,13 @@ const years = [...new Set(research.items.map((r) => r.year))].sort((a, b) => b -
 ---
 <div class="explorer research">
   <h1 class="vh">Research</h1>
-  {research.intro && <p class="intro"><Fragment set:html={inline(research.intro)} /></p>}
+  {research.intro && <p class="intro" data-field="research.intro"><Fragment set:html={inline(research.intro)} /></p>}
   {years.map((y) => (
     <>
       <h2>{y}</h2>
       <ul class="pubs">
         {research.items.filter((r) => r.year === y).map((r) => (
-          <li>
+          <li data-field="research.items">
             <span class="k">{r.kind}</span>
             <span class="b">
               {r.url ? <a href={r.url} target="_blank" rel="noopener">{r.title}</a> : <span class="t">{r.title}</span>}
